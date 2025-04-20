@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VMM Configuration Builder</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: #007619;
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      flex: 1;
+      text-align: center;
+      font-size: 25px;
+      font-weight: bold;
+      padding: 5px;
+    }
+
+    .generate-btn {
+      background: #00bcd4;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .generate-btn:hover {
+      background: #0097a7;
+    }
+
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 100px;
+      background: #f3f3f3;
+      padding: 10px;
+      border-right: 1px solid #ccc;
+    }
+
+    .sidebar .icon-container {
+      margin-bottom: 20px;
+      cursor: grab;
+      text-align: center;
+    }
+
+    .sidebar img {
+      width: 50px;
+      height: 50px;
+    }
+
+    .canvas {
+      flex: 1;
+      position: relative;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .node {
+      position: absolute;
+      text-align: center;
+      width: 70px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .node img {
+      width: 50px;
+      height: 50px;
+    }
+
+    svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    svg line:hover {
+      stroke: red;
+      cursor: pointer;
+    }
+
+    .node::after {
+      content: "";
+      position: absolute;
+      bottom: -18px;
+      font-size: 10px;
+      color: gray;
+      width: 100%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-title">VMM Configuration Builder</div>
+    <button class="generate-btn" onclick="generateConfig()">Generate VMM Config</button>
+  </header>
+
+  <main>
+    <div class="sidebar">
+      <div class="header-title">Nodes</div>
+      <br>
+      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="vMX">
+        <img src="https://img.icons8.com/?size=100&id=63694&format=png&color=000000" alt="vMX">
+        <p>vMX</p>
+      </div>
+      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="vQFX">
+        <img src="https://img.icons8.com/?size=100&id=13061&format=png&color=000000" alt="vQFX">
+        <p>vQFX</p>
+      </div>
+    </div>
+
+    <div class="canvas" id="canvas" ondrop="drop(event)" ondragover="allowDrop(event)">
+      <svg id="svgCanvas"></svg>
+    </div>
+  </main>
+
+  <script>
+    let draggedType = null;
+    let nodeId = 0;
+    let selectedNode = null;
+    let vMXCount = 0;
+    let vQFXCount = 0;
+    let linkCount = 1;
+    const connections = [];
+
+    function allowDrop(e) {
+      e.preventDefault();
+    }
+
+    function drag(e) {
+      draggedType = e.target.closest('[draggable]').dataset.type;
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      if (draggedType) {
+        createNode(e.offsetX, e.offsetY, draggedType);
+        draggedType = null;
+      }
+    }
+
+    function createNode(x, y, type) {
+      const canvas = document.getElementById('canvas');
+      const id = `node_${nodeId++}`;
+      let name = '';
+
+      if (type === 'vMX') {
+        vMXCount++;
+        name = `vMX${vMXCount}`;
+      } else if (type === 'vQFX') {
+        vQFXCount++;
+        name = `vQFX${vQFXCount}`;
+      }
+
+      const node = document.createElement('div');
+      node.className = 'node';
+      node.id = id;
+      node.style.left = `${x}px`;
+      node.style.top = `${y}px`;
+
+      const img = document.createElement('img');
+      img.src = type === 'vMX'
+        ? 'https://img.icons8.com/?size=100&id=63694&format=png&color=000000'
+        : 'https://img.icons8.com/?size=100&id=13061&format=png&color=000000';
+
+      const label = document.createElement('p');
+      label.contentEditable = true;
+      label.spellcheck = false;
+      label.innerText = name;
+      label.style.margin = '5px 0 0';
+      label.style.outline = 'none';
+
+      label.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          label.blur();
+        }
+      });
+
+      node.appendChild(img);
+      node.appendChild(label);
+      canvas.appendChild(node);
+
+      if (type === 'vMX') {
+        node.dataset.type = 'vMX';
+      }
+
+      let isDragging = false;
+      let shiftX, shiftY;
+
+      node.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 || e.target.contentEditable === "true") return;
+
+        const rect = node.getBoundingClientRect();
+        shiftX = e.clientX - rect.left;
+        shiftY = e.clientY - rect.top;
+        isDragging = false;
+
+        const onMouseMove = (event) => {
+          isDragging = true;
+          node.style.left = `${event.clientX - shiftX - canvas.getBoundingClientRect().left}px`;
+          node.style.top = `${event.clientY - shiftY - canvas.getBoundingClientRect().top}px`;
+          updateLines();
+        };
+
+        const onMouseUp = () => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+
+          if (!isDragging) {
+            if (selectedNode && selectedNode !== node) {
+              drawLine(selectedNode, node);
+              selectedNode = null;
+            } else {
+              selectedNode = node;
+            }
+          }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+
+      node.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const confirmDelete = confirm("Delete this node?");
+        if (!confirmDelete) return;
+
+        const svg = document.getElementById('svgCanvas');
+        connections.forEach((conn) => {
+          if (conn.from === node.id || conn.to === node.id) {
+            const line = svg.querySelector(`line[data-from="${conn.from}"][data-to="${conn.to}"]`);
+            if (line) svg.removeChild(line);
+          }
+        });
+
+        for (let i = connections.length - 1; i >= 0; i--) {
+          if (connections[i].from === node.id || connections[i].to === node.id) {
+            connections.splice(i, 1);
+          }
+        }
+
+        node.remove();
+        updateLines();
+      });
+    }
+
+    function drawLine(fromNode, toNode) {
+      const svg = document.getElementById('svgCanvas');
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+
+      line.dataset.from = fromNode.id;
+      line.dataset.to = toNode.id;
+      line.setAttribute('stroke', 'black');
+      line.setAttribute('stroke-width', '2');
+
+      line.addEventListener('click', (e) => {
+        svg.removeChild(line);
+        e.stopPropagation();
+      });
+
+      svg.appendChild(line);
+      connections.push({ from: fromNode.id, to: toNode.id, link: `private${linkCount++}` });
+      updateLines();
+    }
+
+    function updateLines() {
+      const svg = document.getElementById('svgCanvas');
+      const canvasRect = document.getElementById('canvas').getBoundingClientRect();
+      const lines = svg.querySelectorAll('line');
+
+      lines.forEach(line => {
+        const fromNode = document.getElementById(line.dataset.from);
+        const toNode = document.getElementById(line.dataset.to);
+        if (!fromNode || !toNode) return;
+
+        const fromRect = fromNode.getBoundingClientRect();
+        const toRect = toNode.getBoundingClientRect();
+
+        line.setAttribute('x1', fromRect.left + fromRect.width / 2 - canvasRect.left);
+        line.setAttribute('y1', fromRect.top + fromRect.height / 2 - canvasRect.top);
+        line.setAttribute('x2', toRect.left + toRect.width / 2 - canvasRect.left);
+        line.setAttribute('y2', toRect.top + toRect.height / 2 - canvasRect.top);
+      });
+    }
+
+    window.addEventListener('resize', updateLines);
+
+    document.getElementById('canvas').addEventListener('click', (e) => {
+      if (!e.target.closest('.node')) {
+        selectedNode = null;
+      }
+    });
+
+    function generateConfig() {
+      const nodes = Array.from(document.querySelectorAll('.node')).filter(n => n.dataset.type === 'vMX');
+      let configMap = {};
+
+      nodes.forEach((node, idx) => {
+        const label = node.querySelector('p').innerText;
+        configMap[node.id] = `VMX_CHASSIS_START()\n\n#define VMX_CHASSIS_I2CID 33 //**** MX480 Chassis\n#define VMX_CHASSIS_NAME ${label}\n\nVMX_CHASSIS_START()\n    VMX_RE_START(${label}, 0)\n        VMX_RE_INSTANCE(${label}, VMX_DISK1, VMX_RE_I2CID, 0)\n    VMX_RE_END\n\n    VMX_MPC_START(${label}_MPC0, 0)\n        VMX_MPC_INSTANCE(${label}_MPC0, VMX_DISK1, VMX_MPC_I2CID, 0)\n    VMX_MPC_END\nVMX_CHASSIS_END`;
+      });
+
+      connections.forEach((conn, index) => {
+        const fromName = document.querySelector(`#${conn.from} p`).innerText;
+        const toName = document.querySelector(`#${conn.to} p`).innerText;
+
+        if (configMap[conn.from]) {
+          configMap[conn.from] = configMap[conn.from].replace(
+            'VMX_MPC_END',
+            `    VMX_CONNECT(ge(0,0,1), ${conn.link})\n        VMX_MPC_END`
+          );
+        }
+
+        if (configMap[conn.to]) {
+          configMap[conn.to] = configMap[conn.to].replace(
+            'VMX_MPC_END',
+            `    VMX_CONNECT(ge(0,0,1), ${conn.link})\n        VMX_MPC_END`
+          );
+        }
+      });
+
+      const finalConfig = Object.values(configMap).join('\n\n');
+      const newWindow = window.open();
+      newWindow.document.write(`<pre>${finalConfig}</pre>`);
+      newWindow.document.title = "Generated VMM Configuration";
+    }
+  </script>
+</body>
+</html>
