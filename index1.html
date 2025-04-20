@@ -15,9 +15,9 @@
     }
 
     header {
-      background: #333;
+      background: #007619;
       color: white;
-      padding: 10px 20px;
+      padding: 20px 30px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -26,17 +26,18 @@
     .header-title {
       flex: 1;
       text-align: center;
-      font-size: 20px;
+      font-size: 25px;
       font-weight: bold;
+      padding: 5px;
     }
 
     .generate-btn {
       background: #00bcd4;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 10px 16px;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 20px;
       cursor: pointer;
     }
 
@@ -51,7 +52,7 @@
     }
 
     .sidebar {
-      width: 200px;
+      width: 100px;
       background: #f3f3f3;
       padding: 10px;
       border-right: 1px solid #ccc;
@@ -99,6 +100,16 @@
       stroke: red;
       cursor: pointer;
     }
+
+    .node::after {
+      content: "";
+      position: absolute;
+      bottom: -18px;
+      font-size: 10px;
+      color: gray;
+      width: 100%;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -109,13 +120,15 @@
 
   <main>
     <div class="sidebar">
-      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="router">
-        <img src="https://img.icons8.com/?size=100&id=63694&format=png&color=000000" alt="Router">
-        <p>Router</p>
+      <div class="header-title">Nodes</div>
+      <br>
+      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="vMX">
+        <img src="https://img.icons8.com/?size=100&id=63694&format=png&color=000000" alt="vMX">
+        <p>vMX</p>
       </div>
-      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="switch">
-        <img src="https://img.icons8.com/?size=100&id=13061&format=png&color=000000" alt="Switch">
-        <p>Switch</p>
+      <div class="icon-container" draggable="true" ondragstart="drag(event)" data-type="vQFX">
+        <img src="https://img.icons8.com/?size=100&id=13061&format=png&color=000000" alt="vQFX">
+        <p>vQFX</p>
       </div>
     </div>
 
@@ -128,8 +141,8 @@
     let draggedType = null;
     let nodeId = 0;
     let selectedNode = null;
-    let routerCount = 0;
-    let switchCount = 0;
+    let vMXCount = 0;
+    let vQFXCount = 0;
     let linkCount = 1;
     const connections = [];
 
@@ -154,12 +167,12 @@
       const id = `node_${nodeId++}`;
       let name = '';
 
-      if (type === 'router') {
-        routerCount++;
-        name = `router${routerCount}`;
-      } else if (type === 'switch') {
-        switchCount++;
-        name = `switch${switchCount}`;
+      if (type === 'vMX') {
+        vMXCount++;
+        name = `vMX${vMXCount}`;
+      } else if (type === 'vQFX') {
+        vQFXCount++;
+        name = `vQFX${vQFXCount}`;
       }
 
       const node = document.createElement('div');
@@ -169,7 +182,7 @@
       node.style.top = `${y}px`;
 
       const img = document.createElement('img');
-      img.src = type === 'router'
+      img.src = type === 'vMX'
         ? 'https://img.icons8.com/?size=100&id=63694&format=png&color=000000'
         : 'https://img.icons8.com/?size=100&id=13061&format=png&color=000000';
 
@@ -191,8 +204,8 @@
       node.appendChild(label);
       canvas.appendChild(node);
 
-      if (type === 'router') {
-        node.dataset.type = 'router';
+      if (type === 'vMX') {
+        node.dataset.type = 'vMX';
       }
 
       let isDragging = false;
@@ -233,6 +246,25 @@
 
       node.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        const confirmDelete = confirm("Delete this node?");
+        if (!confirmDelete) return;
+
+        const svg = document.getElementById('svgCanvas');
+        connections.forEach((conn) => {
+          if (conn.from === node.id || conn.to === node.id) {
+            const line = svg.querySelector(`line[data-from="${conn.from}"][data-to="${conn.to}"]`);
+            if (line) svg.removeChild(line);
+          }
+        });
+
+        for (let i = connections.length - 1; i >= 0; i--) {
+          if (connections[i].from === node.id || connections[i].to === node.id) {
+            connections.splice(i, 1);
+          }
+        }
+
+        node.remove();
+        updateLines();
       });
     }
 
@@ -284,7 +316,7 @@
     });
 
     function generateConfig() {
-      const nodes = Array.from(document.querySelectorAll('.node')).filter(n => n.dataset.type === 'router');
+      const nodes = Array.from(document.querySelectorAll('.node')).filter(n => n.dataset.type === 'vMX');
       let configMap = {};
 
       nodes.forEach((node, idx) => {
