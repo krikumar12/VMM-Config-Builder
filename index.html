@@ -348,6 +348,78 @@
       newWindow.document.write(`<pre>${finalConfig}</pre>`);
       newWindow.document.title = "Generated VMM Configuration";
     }
+
+  // function generateConfig() {
+  // const nodes = Array.from(document.querySelectorAll('.node')).filter(
+  //   (n) => n.dataset.type === 'vMX'
+  // );
+  // let configMap = {};
+
+  // // Initialize configuration for each node
+  // nodes.forEach((node) => {
+  //   const label = node.querySelector('p').innerText;
+  //   configMap[node.id] = `VMX_CHASSIS_START()\n\n#define VMX_CHASSIS_I2CID 33 //**** MX480 Chassis\n#define VMX_CHASSIS_NAME ${label}\n\nVMX_CHASSIS_START()\n    VMX_RE_START(${label}, 0)\n        VMX_RE_INSTANCE(${label}, VMX_DISK1, VMX_RE_I2CID, 0)\n    VMX_RE_END\n\n    VMX_MPC_START(${label}_MPC0, 0)\n        VMX_MPC_INSTANCE(${label}_MPC0, VMX_DISK1, VMX_MPC_I2CID, 0)\n    VMX_MPC_END\nVMX_CHASSIS_END`;
+  // });
+
+  // // Track interface numbers for each node
+  // const interfaceTracker = {};
+
+  // // Helper function to get the next available interface for a node
+  // const getNextInterface = (nodeId) => {
+  //   if (!interfaceTracker[nodeId]) {
+  //     interfaceTracker[nodeId] = 1;
+  //   }
+  //   return `ge(0,0,${interfaceTracker[nodeId]++})`;
+  // };
+
+  // // Track private link usage
+  // const privateLinks = {};
+
+  // // Helper function to get or create a private link between two nodes
+  // const getPrivateLink = (fromNodeId, toNodeId) => {
+  //   const key = [fromNodeId, toNodeId].sort().join('-');
+  //   if (!privateLinks[key]) {
+  //     privateLinks[key] = `private${Object.keys(privateLinks).length + 1}`;
+  //   }
+  //   return privateLinks[key];
+  // };
+
+  // // Process connections
+  // connections.forEach((conn) => {
+  //   const fromNode = document.querySelector(`#${conn.from}`);
+  //   const toNode = document.querySelector(`#${conn.to}`);
+
+  //   if (!fromNode || !toNode) {
+  //     console.error(`Invalid connection: ${conn.from} -> ${conn.to}`);
+  //     return;
+  //   }
+
+  //   const fromInterface = getNextInterface(conn.from);
+  //   const toInterface = getNextInterface(conn.to);
+
+  //   const privateLink = getPrivateLink(conn.from, conn.to);
+
+  //   // Update the configuration for the "from" node
+  //   if (configMap[conn.from]) {
+  //     configMap[conn.from] = configMap[conn.from].replace(
+  //       'VMX_MPC_END',
+  //       `    VMX_CONNECT(${fromInterface}, ${privateLink})\n    VMX_MPC_END`
+  //     );
+  //   }
+
+  //   // Update the configuration for the "to" node
+  //   if (configMap[conn.to]) {
+  //     configMap[conn.to] = configMap[conn.to].replace(
+  //       'VMX_MPC_END',
+  //       `    VMX_CONNECT(${toInterface}, ${privateLink})\n    VMX_MPC_END`
+  //     );
+  //   }
+  // });
+
+  // // Output the generated configuration
+  // console.log('Generated Configuration:', configMap);
+  // return configMap;
+  // }
   </script>
 </body>
 </html>
